@@ -5,15 +5,23 @@ service: authService
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs24.x
+  region: ap-south-1
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
 
 functions:
-  hello:
-    handler: handler.hello
+  signUp:
+    handler: handlers/signUp.signUp
     events:
       - httpApi:
-          path: /
-          method: get
+          path: /sign-up
+          method: post
+
+  confirmSignUp:
+    handler: handlers/confirmSignUp.confirmSignUp
+    events:
+      - httpApi:
+          path: /confirm-sign-up
+          method: post
