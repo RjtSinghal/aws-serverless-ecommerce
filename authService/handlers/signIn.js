@@ -1,40 +1,40 @@
 const {
   CognitoIdentityProviderClient,
-  SignUpCommand,
+  InitiateAuthCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 
 const client = new CognitoIdentityProviderClient({ region: "ap-south-1" });
 
 const CLIENT_ID = process.env.CLIENT_ID;
 
-exports.signUp = async (event) => {
-  const { email, fullName, password } = JSON.parse(event.body);
+exports.signIn = async (event) => {
+  const { email, password } = JSON.parse(event.body);
 
   const params = {
+    AuthFlow: "USER_PASSWORD_AUTH",
     ClientId: CLIENT_ID,
-    Username: email,
-    Password: password,
-    UserAttributes: [
-      { Name: "name", Value: fullName },
-      { Name: "email", Value: email },
-    ],
+    AuthParameters: {
+      USERNAME: email,
+      PASSWORD: password,
+    },
   };
 
   try {
-    const command = new SignUpCommand(params);
-    await client.send(command);
+    const command = new InitiateAuthCommand(params);
+    const response = await client.send(command);
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        msg: "Account created successfully. Please enter the otp that was sent to your email.",
+        msg: "User signed in successfully",
+        token: response.AuthenticationResult,
       }),
     };
   } catch (error) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        msg: "Internal Server Error",
+        msg: "Failed to sign in",
         error: error.message,
       }),
     };

@@ -7,6 +7,8 @@ provider:
   name: aws
   runtime: nodejs24.x
   region: ap-south-1
+  environment:
+    CLIENT_ID: ${ssm:/CLIENT_ID}
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
@@ -24,4 +26,16 @@ functions:
     events:
       - httpApi:
           path: /confirm-sign-up
+          method: post
+  signIn:
+    handler: handlers/signIn.signIn
+    events:
+      - httpApi:
+          path: /sign-in
+          method: post
+  signOut:
+    handler: handlers/signOut.signOut
+    events:
+      - httpApi:
+          path: /sign-out
           method: post

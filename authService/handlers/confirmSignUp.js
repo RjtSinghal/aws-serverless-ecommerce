@@ -5,7 +5,7 @@ const {
 
 const client = new CognitoIdentityProviderClient({ region: "ap-south-1" });
 
-const CLIENT_ID = "b4h0mpt6t1anrl7e9fkuhs5if";
+const CLIENT_ID = process.env.CLIENT_ID;
 
 exports.confirmSignUp = async (event) => {
   const { email, confirmationCode } = JSON.parse(event.body);
