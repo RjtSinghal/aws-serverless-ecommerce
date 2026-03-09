@@ -9,9 +9,30 @@ provider:
   region: ap-south-1
   environment:
     CLIENT_ID: ${ssm:/CLIENT_ID}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+      Resource:
+        - arn:aws:dynamodb:ap-south-1:111335939422:table/Users
+
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
+
+resources:
+  Resources:
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Users
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S # "S" stands for String
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH # HASH means this is the partition key
 
 functions:
   signUp:
