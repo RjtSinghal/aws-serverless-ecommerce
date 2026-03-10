@@ -5,15 +5,57 @@ service: bannerService
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs24.x
+  region: ap-south-1
+  environment:
+    BUCKET_NAME: banner-images-bucket-rajats123
+    DYNAMODB_TABLE: Banners
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - s3:PutObject
+      Resource:
+        - arn:aws:s3:::banner-images-bucket-rajats123/*
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+      Resource: arn:aws:dynamodb:ap-south-1:111335939422:table/Banners
+
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
 
+resources:
+  Resources:
+    BannerImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: banner-images-bucket-rajats123
+
+    BannersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Banners
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: fileName
+            AttributeType: S # "S" stands for String
+        KeySchema:
+          - AttributeName: fileName
+            KeyType: HASH # HASH means this is the partition key
+
 functions:
-  hello:
-    handler: handler.hello
+  uploadBanner:
+    handler: handlers/uploadBanner.getUploadUrl
     events:
       - httpApi:
-          path: /
-          method: get
+          path: /upload-banner
+          method: post
+
+  confirmUpload:
+    handler: handlers/confirmUpload.confirmUpload
+    events:
+      - s3:
+          bucket: banner-images-bucket-rajats123
+          event: s3:ObjectCreated:Put
+          existing: true
