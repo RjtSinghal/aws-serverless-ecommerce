@@ -38,7 +38,7 @@ exports.cleanUpCategories = async (event) => {
     for (const item of Items) {
       const deleteItemCommand = new DeleteItemCommand({
         TableName: tableName,
-        key: { fileName: { S: item.fileName.S } },
+        Key: { fileName: { S: item.fileName.S } },
       });
       await dynamoDbClient.send(deleteItemCommand);
       deletedCount++;
