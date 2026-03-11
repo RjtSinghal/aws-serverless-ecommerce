@@ -3,13 +3,16 @@ const {
   ScanCommand,
   DeleteItemCommand,
 } = require("@aws-sdk/client-dynamodb");
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 const dynamoDbClient = new DynamoDBClient({ region: "ap-south-1" });
+const snsClient = new SNSClient({ region: "ap-south-1" });
 
 // cleanup function to delete records older than 1 hour and no category image uploaded
 exports.cleanUpCategories = async (event) => {
   try {
     const tableName = process.env.DYNAMODB_TABLE;
+    const snsTopicArn = process.env.SNS_TOPIC_ARN;
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -40,6 +43,17 @@ exports.cleanUpCategories = async (event) => {
       await dynamoDbClient.send(deleteItemCommand);
       deletedCount++;
     }
+
+    // Send a SNS notification after deleting categories
+    const snsMessage = `Cleanup completed. Deleted ${deletedCount} outdated categories.`;
+
+    await snsClient.send(
+      new PublishCommand({
+        TopicArn: snsTopicArn,
+        Message: snsMessage,
+        Subject: "Category cleanup Notification",
+      }),
+    );
 
     return {
       statusCode: 200,

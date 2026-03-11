@@ -10,12 +10,15 @@ provider:
   environment:
     BUCKET_NAME: category-images-bucket-rajats123
     DYNAMODB_TABLE: Categories
+    SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:111335939422:CategoryCleanupTopic
+
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - s3:PutObject
       Resource:
         - arn:aws:s3:::category-images-bucket-rajats123/*
+
     - Effect: "Allow"
       Action:
         - dynamodb:PutItem
@@ -23,6 +26,11 @@ provider:
         - dynamodb:DeleteItem
         - dynamodb:Scan
       Resource: arn:aws:dynamodb:ap-south-1:111335939422:table/Categories
+
+    - Effect: "Allow"
+      Action:
+        - sns:Publish
+      Resource: arn:aws:sns:ap-south-1:111335939422:CategoryCleanupTopic
 
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
@@ -46,6 +54,17 @@ resources:
         KeySchema:
           - AttributeName: fileName
             KeyType: HASH # HASH means this is the partition key
+
+    CategoryCleanupTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: CategoryCleanupTopic
+    CategoryCleanupSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: arn:aws:sns:ap-south-1:111335939422:CategoryCleanupTopic
+        Protocol: email
+        Endpoint: singhal.rajat.1995@gmail.com
 
 functions:
   getUploadUrl:
