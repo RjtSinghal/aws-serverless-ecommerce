@@ -5,15 +5,65 @@ service: categoryService
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs24.x
+  region: ap-south-1
+  environment:
+    BUCKET_NAME: category-images-bucket-rajats123
+    DYNAMODB_TABLE: Categories
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - s3:PutObject
+      Resource:
+        - arn:aws:s3:::category-images-bucket-rajats123/*
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:ap-south-1:111335939422:table/Categories
+
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
 
+resources:
+  Resources:
+    CategoryImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: category-images-bucket-rajats123
+
+    CategoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Categories
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: fileName
+            AttributeType: S # "S" stands for String
+        KeySchema:
+          - AttributeName: fileName
+            KeyType: HASH # HASH means this is the partition key
+
 functions:
-  hello:
-    handler: handler.hello
+  getUploadUrl:
+    handler: handlers/getUploadUrl.getUploadUrl
     events:
       - httpApi:
-          path: /
-          method: get
+          path: /upload-url
+          method: post
+
+  updateCategoryImage:
+    handler: handlers/updateCategoryImage.updateCategoryImage
+    events:
+      - s3:
+          bucket: category-images-bucket-rajats123
+          event: s3:ObjectCreated:Put
+          existing: true
+
+  cleanUpCategories:
+    handler: handlers/cleanUpCategories.cleanUpCategories
+    events:
+      - schedule: rate(2 minutes)
