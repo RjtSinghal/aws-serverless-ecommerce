@@ -1,0 +1,89 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: rajats123
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: productService
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  region: ap-south-1
+  httpApi:
+    authorizers:
+      myCognitoAuth:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.ap-south-1.amazonaws.com/ap-south-1_waZEz8c72
+        audience:
+          - b4h0mpt6t1anrl7e9fkuhs5if
+
+  environment:
+    BUCKET_NAME: product-images-bucket-rajats123
+    DYNAMODB_TABLE: Products
+    SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:Scan"
+        - "dynamodb:DeleteItem"
+      Resource: arn:aws:dynamodb:ap-south-1:111335939422:table/Products
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+      Resource: arn:aws:s3:::product-images-bucket-rajats123/*
+    - Effect: "Allow"
+      Action:
+        - "sns:Publish"
+      Resource: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+
+resources:
+  Resources:
+    ProductImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: product-images-bucket-rajats123
+
+    ProductTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Products
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: fileName
+            AttributeType: S # "S" stands for String
+        KeySchema:
+          - AttributeName: fileName
+            KeyType: HASH # HASH means this is the partition key
+
+    ProductCleanupTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ProductCleanupTopic
+    ProductCleanupSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+        Protocol: email
+        Endpoint: singhal.rajat.1995@gmail.com
+
+functions:
+  getUploadUrl:
+    handler: handlers/getUploadUrl.getUploadUrl
+    events:
+      - httpApi:
+          path: /upload-url
+          method: post
+          authorizer: myCognitoAuth
+  updateProductImage:
+    handler: handlers/updateProductImage.updateProductImage
+    events:
+      - s3:
+          bucket: product-images-bucket-rajats123
+          event: s3:ObjectCreated:Put
+          existing: true
+
+  cleanUpProducts:
+    handler: handlers/cleanUpProducts.cleanUpProducts
+    events:
+      - schedule: rate(2 minutes)
