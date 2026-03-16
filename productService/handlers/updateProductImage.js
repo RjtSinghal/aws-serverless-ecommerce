@@ -14,12 +14,11 @@ exports.updateProductImage = async (event) => {
     const bucketName = record.s3.bucket.name;
 
     const fileName = record.s3.object.key;
-
     const imageUrl = `https://${bucketName}.s3.amazonaws.com/${fileName}`;
 
     const scanCommand = new ScanCommand({
       TableName: tableName,
-      FilterExpression: "fileName = : filename",
+      FilterExpression: "fileName = :filename",
       ExpressionAttributeValues: {
         ":filename": { S: fileName },
       },
@@ -27,6 +26,7 @@ exports.updateProductImage = async (event) => {
     const scanResult = await dynamoDBClient.send(scanCommand);
 
     if (!scanResult.Items || scanResult.Items.length === 0) {
+      console.error("Product not found with fileName:", fileName);
       return {
         statusCode: 404,
         body: JSON.stringify({ message: "Product not found" }),
@@ -44,6 +44,10 @@ exports.updateProductImage = async (event) => {
       },
     });
     await dynamoDBClient.send(updateItemCommand);
+    console.log(
+      "Updated Item:",
+      JSON.stringify(updateResult.Attributes, null, 2),
+    );
 
     return {
       statusCode: 200,

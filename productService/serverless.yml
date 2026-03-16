@@ -1,7 +1,7 @@
 # "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: rajats123
 # "service" is the name of this project. This will also be added to your AWS resource names.
-service: productService
+service: productService-v2
 
 provider:
   name: aws
@@ -18,7 +18,7 @@ provider:
   environment:
     BUCKET_NAME: product-images-bucket-rajats123
     DYNAMODB_TABLE: Products
-    SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+    SNS_TOPIC_ARN: !GetAtt ProductCleanupTopic.TopicArn
 
   iamRoleStatements:
     - Effect: "Allow"
@@ -27,7 +27,7 @@ provider:
         - "dynamodb:UpdateItem"
         - "dynamodb:Scan"
         - "dynamodb:DeleteItem"
-      Resource: arn:aws:dynamodb:ap-south-1:111335939422:table/Products
+      Resource: !GetAtt ProductTable.Arn
     - Effect: "Allow"
       Action:
         - "s3:PutObject"
@@ -35,7 +35,7 @@ provider:
     - Effect: "Allow"
       Action:
         - "sns:Publish"
-      Resource: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+      Resource: !GetAtt ProductCleanupTopic.TopicArn
 
 resources:
   Resources:
@@ -50,10 +50,10 @@ resources:
         TableName: Products
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
-          - AttributeName: fileName
+          - AttributeName: id
             AttributeType: S # "S" stands for String
         KeySchema:
-          - AttributeName: fileName
+          - AttributeName: id
             KeyType: HASH # HASH means this is the partition key
 
     ProductCleanupTopic:
@@ -63,10 +63,11 @@ resources:
     ProductCleanupSubscription:
       Type: AWS::SNS::Subscription
       Properties:
-        TopicArn: arn:aws:sns:ap-south-1:111335939422:ProductCleanupTopic
+        TopicArn: !Ref ProductCleanupTopic
         Protocol: email
         Endpoint: singhal.rajat.1995@gmail.com
 
+# Define the Lambda functions and their triggers and endpoints.
 functions:
   getUploadUrl:
     handler: handlers/getUploadUrl.getUploadUrl
@@ -75,6 +76,14 @@ functions:
           path: /upload-url
           method: post
           authorizer: myCognitoAuth
+
+  getApprovedProducts:
+    handler: handlers/getApprovedProducts.getApprovedProducts
+    events:
+      - httpApi:
+          path: /approved-products
+          method: get
+
   updateProductImage:
     handler: handlers/updateProductImage.updateProductImage
     events:
