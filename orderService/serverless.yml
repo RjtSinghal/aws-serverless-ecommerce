@@ -1,0 +1,55 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: rajats123
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: orderService
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  region: ap-south-1
+  environment:
+    ORDERS_TABLE: Orders
+    SQS_QUEUE_URL: https://sqs.ap-south-1.amazonaws.com/111335939422/OrdersQueue
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "sqs:SendMessage"
+        - "sqs:ReceiveMessage"
+        - "sqs:DeleteMessage"
+      Resource:
+        - Fn::GetAtt: [OrdersTable, Arn]
+        - Fn::GetAtt: [OrdersQueue, Arn]
+
+resources:
+  Resources:
+    OrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Orders
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S # "S" stands for String
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH # HASH means this is the partition key
+    OrdersQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: OrdersQueue
+
+functions:
+  placeOrder:
+    handler: handlers/placeOrder.placeOrder
+    events:
+      - httpApi:
+          path: /place-order
+          method: post
+  processOrders:
+    handler: handlers/processOrder.processOrder
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [OrdersQueue, Arn]
