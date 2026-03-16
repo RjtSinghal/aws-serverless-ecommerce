@@ -2,6 +2,7 @@ const { DynamoDBClient, PutItemCommand } = require("@aws-sdk/client-dynamodb");
 const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 const axios = require("axios");
 const crypto = require("crypto");
+const { SendOrderEmail } = require("../services/sendEmail");
 
 const dynamoDBClient = new DynamoDBClient({ region: "ap-south-1" });
 const sqsClient = new SQSClient({ region: "ap-south-1" });
@@ -56,6 +57,13 @@ exports.placeOrder = async (event) => {
         QueueUrl: process.env.SQS_QUEUE_URL,
         MessageBody: JSON.stringify(orderPayload),
       }),
+    );
+
+    // Send email to the buyer
+    await SendOrderEmail(
+      email,
+      orderId,
+      product.productName?.S || "Unknown Product",
     );
 
     return {

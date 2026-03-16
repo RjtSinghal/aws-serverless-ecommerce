@@ -18,9 +18,11 @@ provider:
         - "sqs:SendMessage"
         - "sqs:ReceiveMessage"
         - "sqs:DeleteMessage"
+        - "ses:SendEmail"
       Resource:
         - Fn::GetAtt: [OrdersTable, Arn]
         - Fn::GetAtt: [OrdersQueue, Arn]
+        - arn:aws:ses:ap-south-1:111335939422:identity/singhal.rajat.1995@gmail.com # internal function doesnt work to for SES(email) service
 
 resources:
   Resources:
@@ -39,6 +41,10 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: OrdersQueue
+    OrderServiceEmailIdentity:
+      Type: AWS::SES::EmailIdentity
+      Properties:
+        EmailIdentity: singhal.rajat.1995@gmail.com
 
 functions:
   placeOrder:
